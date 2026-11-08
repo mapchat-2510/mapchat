@@ -1,0 +1,280 @@
+<<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MapChat</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--ink:#12263a;--sea:#1f7a8c;--sea-d:#155b69;--mist:#eaf4f8;--line:#d5e3ea;--mine:#c4ebdc;--pin:#ff5a4e;--blue:#1a6dff;--bg:#f6fafc;--mut:#6a7f8e}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg);font-size:15px}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+:focus-visible{outline:2px solid var(--sea);outline-offset:2px}
+.hide{display:none!important}
+
+/* AUTH */
+#auth{min-height:100%;display:grid;grid-template-columns:1.1fr 1fr}
+.hero{background:var(--ink);color:#fff;padding:48px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.hero h1{font-size:44px;letter-spacing:-1.5px}
+.hero h1 b{color:var(--pin)}
+.hero p{max-width:30ch;color:#a9c3d2;margin-top:10px;line-height:1.5}
+.tiles{display:grid;grid-template-columns:repeat(3,84px);gap:14px;margin:30px 0}
+.tile{width:84px;height:84px;border-radius:22px;background:var(--sea);display:grid;place-items:center;font-size:34px;transform:rotate(var(--r,0deg))}
+.tile:nth-child(2){background:var(--pin);--r:6deg}.tile:nth-child(3){background:#2d4a63;--r:-5deg}
+.tile:nth-child(4){background:#2d4a63;--r:4deg}.tile:nth-child(5){background:var(--sea-d);--r:-7deg}.tile:nth-child(6){background:var(--sea);--r:3deg}
+.tile:nth-child(1){--r:-4deg}
+.story{width:46px;height:46px;border-radius:50%;border:3px solid var(--pin);padding:3px;display:grid;place-items:center;font-size:22px}
+.card{padding:48px;display:flex;flex-direction:column;justify-content:center;max-width:460px;width:100%;margin:auto}
+.tabs{display:flex;gap:6px;background:var(--mist);padding:4px;border-radius:12px;margin-bottom:24px}
+.tabs button{flex:1;padding:10px;border-radius:9px;font-weight:600;color:var(--mut)}
+.tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(18,38,58,.15)}
+.card h2{font-size:24px;margin-bottom:16px;letter-spacing:-.4px}
+label{display:block;font-weight:600;font-size:13px;margin:14px 0 6px}
+label i{color:var(--pin);font-style:normal}
+input[type=text],input[type=email],input[type=tel]{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#fff}
+input:focus{outline:2px solid var(--sea);border-color:transparent}
+.or{text-align:center;color:var(--mut);margin:12px 0 0;font-size:13px}
+.btn{background:var(--sea);color:#fff;padding:12px 20px;border-radius:12px;font-weight:600}
+.btn:hover{background:var(--sea-d)}
+.btn.full{width:100%;margin-top:22px;padding:14px}
+.btn.alt{background:var(--ink)}
+.gen{display:flex;align-items:center;gap:12px;margin-top:16px;padding:12px;border:1px dashed var(--sea);border-radius:12px;background:var(--mist)}
+.gen input{width:20px;height:20px;accent-color:var(--sea)}
+.gen span{flex:1;font-weight:600;font-size:14px}
+.num{color:var(--blue);font-weight:700;margin-top:10px}
+.err{color:#c62d2d;font-size:13px;margin-top:12px;min-height:18px}
+
+/* MAIN */
+#main{height:100%;display:grid;grid-template-rows:56px 1fr;grid-template-columns:68px 340px 1fr}
+.top{grid-column:1/-1;display:grid;grid-template-columns:408px 1fr auto;align-items:center;background:rgba(246,250,252,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);z-index:5}
+.brand{padding-left:20px;font-weight:800;font-size:19px;letter-spacing:-.5px;display:flex;align-items:center;gap:8px}
+.brand b{color:var(--pin)}
+.who{display:flex;align-items:center;gap:10px;min-width:0}
+.who strong{display:block;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who small{color:var(--mut);font-size:12px}
+.actions{display:flex;gap:4px;padding-right:12px;position:relative}
+.ic{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--sea)}
+.ic:hover{background:var(--mist)}
+.ic svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.back{display:none;color:var(--sea);font-size:17px;padding:0 8px 0 14px}
+.menu{position:absolute;right:12px;top:46px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(18,38,58,.14);padding:6px;min-width:190px}
+.menu button{display:block;width:100%;text-align:left;padding:10px 12px;border-radius:8px}
+.menu button:hover{background:var(--mist)}
+.av{width:38px;height:38px;border-radius:50%;background:var(--sea);color:#fff;display:grid;place-items:center;font-weight:700;font-size:14px;flex:none}
+.rail{background:var(--ink);display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 0}
+.rail button{width:48px;height:48px;border-radius:14px;color:#8fb0c3;display:grid;place-items:center;gap:0;font-size:10px}
+.rail button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.rail button.on{background:var(--sea);color:#fff}
+.rail .sp{flex:1}
+.list{border-right:1px solid var(--line);background:#fff;display:flex;flex-direction:column;min-height:0}
+.search{padding:12px}
+.search input{background:var(--mist);border:0;border-radius:12px;padding:10px 14px}
+.items{overflow:auto;flex:1}
+.item{display:flex;gap:12px;padding:12px 14px;width:100%;text-align:left;align-items:center;border-bottom:1px solid #eef4f7}
+.item:hover,.item.on{background:var(--mist)}
+.item div{min-width:0;flex:1}
+.item b{display:block}
+.item span{color:var(--mut);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.empty{padding:36px 22px;text-align:center;color:var(--mut)}
+.empty p{margin-bottom:16px;font-size:16px;color:var(--ink)}
+.addbar{padding:12px}
+.pane{min-height:0;display:flex;flex-direction:column;background:#e9f3f6}
+.msgs{flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:6px}
+.m{max-width:min(70%,520px);padding:9px 13px;border-radius:18px;background:#fff;align-self:flex-start;line-height:1.4;overflow-wrap:anywhere}
+.m.me{align-self:flex-end;background:var(--mine)}
+.m time{display:block;font-size:11px;color:var(--mut);text-align:right;margin-top:2px}
+.composer{display:flex;gap:10px;padding:12px;background:var(--bg);border-top:1px solid var(--line)}
+.composer input{flex:1;border-radius:22px;padding:11px 16px}
+.composer .btn{border-radius:22px}
+.hint{margin:auto;color:var(--mut);text-align:center;max-width:30ch;line-height:1.5}
+.form{max-width:420px;margin:40px auto;padding:0 20px;width:100%}
+.view{grid-column:2/-1;overflow:auto;padding:28px;min-height:0}
+.view h2{margin-bottom:6px}
+.view p{color:var(--mut);margin-bottom:16px}
+#map{height:calc(100% - 20px);min-height:340px;border-radius:16px;border:1px solid var(--line)}
+.coords{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:16px;line-height:1.7}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:20px;z-index:99}
+
+@media(max-width:820px){
+ #auth{grid-template-columns:1fr}.hero{padding:28px}.hero h1{font-size:32px}.tiles{display:none}.card{padding:28px 22px}
+ #main{grid-template-columns:1fr;grid-template-rows:56px 1fr 60px}
+ .top{grid-template-columns:auto 1fr auto}
+ .rail{flex-direction:row;justify-content:space-around;grid-row:3;padding:6px}.rail .sp{display:none}
+ .list,.pane,.view{grid-column:1;grid-row:2}
+ .pane{display:none}.view{grid-column:1}
+ #main.open .list{display:none}#main.open .pane{display:flex}
+ #main.open .back{display:block}#main.open .brand{display:none}
+ #main:not(.open) .who,#main:not(.open) .actions{visibility:hidden}
+}
+@media(prefers-reduced-motion:no-preference){.m{animation:pop .15s ease-out}@keyframes pop{from{transform:scale(.95);opacity:.5}}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const J=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}};
+const S=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const fmt=n=>n.slice(0,4)+' '+n.slice(4);
+const ini=s=>s.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase()||'#';
+const key=(a,b)=>[a,b].sort().join('-');
+const ico={
+ phone:'<svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>',
+ video:'<svg viewBox="0 0 24 24"><rect x="2" y="6" width="13" height="12" rx="3"/><path d="m15 10 7-4v12l-7-4"/></svg>',
+ dots:'<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>',
+ chat:'<svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.6A8 8 0 1 1 21 12z"/></svg>',
+ gps:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>',
+ map:'<svg viewBox="0 0 24 24"><path d="m3 6 6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14"/></svg>',
+ out:'<svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>'
+};
+let me=sessionStorage.getItem('mc_me'),view='chat',cur=null,adding=false,mapObj=null,myPos=null,authMode='login',gen='';
+
+function toast(t){const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.append(e);setTimeout(()=>e.remove(),2200)}
+
+/* ---------- AUTH ---------- */
+function renderAuth(){
+ $('#app').innerHTML=`<div id="auth"><section class="hero"><div><h1>Map<b>Chat</b></h1><p>Scrivi, chiama e ritrova i tuoi contatti sulla mappa.</p></div>
+ <div class="tiles" aria-hidden="true"><div class="tile">✈️</div><div class="tile">📍</div><div class="tile">💬</div><div class="tile"><div class="story">🙂</div></div><div class="tile">🗺️</div><div class="tile">📞</div></div>
+ <small style="color:#7e9bad">Prototipo in localhost</small></section>
+ <section class="card"><div class="tabs" role="tablist"><button class="${authMode=='login'?'on':''}" data-m="login">Accedi</button><button class="${authMode=='reg'?'on':''}" data-m="reg">Registrati</button></div>
+ ${authMode=='login'?`<h2>Accedi</h2>
+ <label for="ln">Numero di telefono a 8 cifre <i>*</i></label><input id="ln" type="tel" inputmode="numeric" maxlength="9" placeholder="1234 5678">
+ <label for="le">La tua email usata per registrarti</label><input id="le" type="email" placeholder="nome@email.it">
+ <div class="err" id="err"></div><button class="btn full" id="go">Accedi</button>`:
+ `<h2>Registrati</h2>
+ <label for="rp">Numero di telefono WhatsApp <i>*</i></label><input id="rp" type="tel" placeholder="Inserisci il tuo numero di telefono">
+ <div class="or">oppure</div>
+ <label for="re">Hai un'email? Inseriscila qui <i>*</i></label><input id="re" type="email" placeholder="nome@email.it">
+ <div class="gen"><input type="checkbox" id="gc" aria-label="Genera il tuo numero"><span>Genera il tuo numero di telefono a 8 cifre! <i style="color:#ff5a4e;font-style:normal">*</i></span><button class="btn alt" id="gb" type="button">Genera</button></div>
+ <div class="num" id="gn"></div>
+ <label for="rn">Scrivi il numero generato <i>*</i></label><input id="rn" type="tel" inputmode="numeric" maxlength="9" placeholder="1234 5678">
+ <div class="err" id="err"></div><button class="btn full" id="go">Registrati</button>`}</section></div>`;
+ document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{authMode=b.dataset.m;gen='';renderAuth()});
+ $('#go').onclick=authMode=='login'?doLogin:doReg;
+ if(authMode=='reg')$('#gb').onclick=()=>{
+  const u=J('mc_users',{});let n;do{n=String(Math.floor(1e7+Math.random()*9e7))}while(u[n]);
+  gen=n;$('#gn').textContent=`+39 ${fmt(n)} ← Il tuo numero di telefono`;$('#gc').checked=true};
+}
+function doLogin(){
+ const n=$('#ln').value.replace(/\D/g,''),e=$('#le').value.trim().toLowerCase(),u=J('mc_users',{})[n];
+ if(n.length!=8)return $('#err').textContent='Inserisci un numero di 8 cifre.';
+ if(!u||(u.email&&u.email!=e))return $('#err').textContent='Numero o email non corretti.';
+ sessionStorage.setItem('mc_me',n);me=n;start();
+}
+function doReg(){
+ const p=$('#rp').value.trim(),e=$('#re').value.trim().toLowerCase(),t=$('#rn').value.replace(/\D/g,'');
+ if(!p&&!e)return $('#err').textContent='Inserisci il numero WhatsApp oppure un\'email.';
+ if(e&&!/^\S+@\S+\.\S+$/.test(e))return $('#err').textContent='L\'email non sembra valida.';
+ if(!gen||!$('#gc').checked)return $('#err').textContent='Premi Genera per ottenere il tuo numero a 8 cifre.';
+ if(t!=gen)return $('#err').textContent='Il numero scritto non coincide con quello generato.';
+ const u=J('mc_users',{});u[gen]={phone:p,email:e};S('mc_users',u);
+ sessionStorage.setItem('mc_me',gen);me=gen;start();
+}
+
+/* ---------- DATA ---------- */
+const contacts=()=>J('mc_c_'+me,[]);
+const allMsgs=()=>J('mc_msgs',{});
+function convs(){
+ const c=contacts(),m=allMsgs(),map={};
+ c.forEach(x=>map[x.num]={...x});
+ Object.keys(m).forEach(k=>{const [a,b]=k.split('-'),o=a==me?b:b==me?a:null;if(o&&!map[o])map[o]={num:o,name:'+39 '+fmt(o)}});
+ return Object.values(map).map(x=>{const l=(m[key(me,x.num)]||[]).slice(-1)[0];return{...x,last:l}})
+  .sort((a,b)=>(b.last?.t||0)-(a.last?.t||0)||a.name.localeCompare(b.name));
+}
+
+/* ---------- MAIN ---------- */
+function start(){
+ $('#app').innerHTML=`<div id="main"><header class="top">
+  <div class="brand"><button class="back" id="bk">‹ Chat</button>Map<b>Chat</b></div>
+  <div class="who" id="who"></div>
+  <div class="actions"><button class="ic" id="cl" aria-label="Chiamata">${ico.phone}</button><button class="ic" id="vc" aria-label="Videochiamata">${ico.video}</button><button class="ic" id="dt" aria-label="Altro">${ico.dots}</button><div class="menu hide" id="mn"></div></div></header>
+  <nav class="rail"><button data-v="chat" aria-label="Chat">${ico.chat}Chat</button><button data-v="gps" aria-label="MapChat GPS">${ico.gps}GPS</button><button data-v="map" aria-label="Mappa">${ico.map}Mappa</button><div class="sp"></div><button id="lo" aria-label="Esci">${ico.out}</button></nav>
+  <aside class="list" id="ls"></aside><main class="pane" id="pn"></main><section class="view hide" id="vw"></section></div>`;
+ document.querySelectorAll('.rail [data-v]').forEach(b=>b.onclick=()=>{view=b.dataset.v;adding=false;draw()});
+ $('#lo').onclick=()=>{sessionStorage.removeItem('mc_me');me=null;cur=null;view='chat';authMode='login';renderAuth()};
+ $('#bk').onclick=()=>{cur=null;draw()};
+ $('#cl').onclick=$('#vc').onclick=()=>toast('Chiamate e videochiamate: prossima fase');
+ $('#dt').onclick=e=>{e.stopPropagation();$('#mn').classList.toggle('hide')};
+ document.addEventListener('click',()=>$('#mn')?.classList.add('hide'));
+ draw();
+}
+function draw(){
+ const m=$('#main');if(!m)return;
+ document.querySelectorAll('.rail [data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v==view));
+ const chat=view=='chat';
+ $('#ls').classList.toggle('hide',!chat);$('#pn').classList.toggle('hide',!chat);$('#vw').classList.toggle('hide',chat);
+ m.classList.toggle('open',chat&&(!!cur||adding));
+ drawWho();
+ if(chat){drawList();drawPane()}else drawView();
+}
+function drawWho(){
+ const c=cur&&convs().find(x=>x.num==cur);
+ $('#who').innerHTML=c&&view=='chat'?`<div class="av">${esc(ini(c.name))}</div><div><strong>${esc(c.name)}</strong><small>+39 ${fmt(c.num)}</small></div>`:`<div style="color:var(--mut);font-size:13px;padding-left:8px">Il tuo numero: <b style="color:var(--blue)">+39 ${fmt(me)}</b></div>`;
+ $('#mn').innerHTML=c?`<button id="mc">Elimina la chat</button><button id="mr">Rimuovi il contatto</button>`:`<button id="mo">Esci</button>`;
+ if(c){$('#mc').onclick=()=>{const m=allMsgs();delete m[key(me,c.num)];S('mc_msgs',m);draw()};
+  $('#mr').onclick=()=>{S('mc_c_'+me,contacts().filter(x=>x.num!=c.num));cur=null;draw()}}
+ else $('#mo').onclick=()=>$('#lo').click();
+}
+function drawList(){
+ const q=($('#q')?.value||'').toLowerCase(),all=convs(),cs=all.filter(c=>(c.name+c.num).toLowerCase().includes(q));
+ if(!$('#q'))$('#ls').innerHTML=`<div class="search"><input id="q" type="text" placeholder="Cerca un contatto" aria-label="Cerca un contatto"></div><div class="items" id="it"></div>`;
+ $('#q').oninput=drawList;
+ $('#it').innerHTML=(!all.length?`<div class="empty"><p>Vuoi aggiungere un nuovo contatto?</p><button class="btn" id="ad">+ Aggiungi un contatto</button></div>`:
+  cs.map(c=>`<button class="item ${c.num==cur?'on':''}" data-n="${c.num}"><div class="av">${esc(ini(c.name))}</div><div><b>${esc(c.name)}</b><span>${c.last?esc(c.last.text):'Nessun messaggio'}</span></div></button>`).join('')+
+  (cs.length?'':'<div class="empty">Nessun contatto trovato.</div>')+`<div class="addbar"><button class="btn full" id="ad" style="margin-top:6px">+ Aggiungi un contatto</button></div>`);
+ $('#ad').onclick=()=>{adding=true;cur=null;draw()};
+ document.querySelectorAll('.item').forEach(b=>b.onclick=()=>{cur=b.dataset.n;adding=false;draw()});
+}
+function drawPane(){
+ const p=$('#pn');
+ if(adding){
+  p.innerHTML=`<div class="form"><h2 style="margin-bottom:6px">Nuovo contatto</h2><label for="cn">Nome</label><input id="cn" type="text"><label for="cs">Cognome</label><input id="cs" type="text"><label for="cp">Numero di telefono (8 cifre)</label><input id="cp" type="tel" inputmode="numeric" maxlength="9" placeholder="1234 5678"><div class="err" id="err"></div><button class="btn full" id="sv">Salva</button></div>`;
+  $('#sv').onclick=()=>{
+   const n=$('#cn').value.trim(),s=$('#cs').value.trim(),t=$('#cp').value.replace(/\D/g,'');
+   if(!n)return $('#err').textContent='Scrivi almeno il nome.';
+   if(t.length!=8)return $('#err').textContent='Il numero deve avere 8 cifre.';
+   if(t==me)return $('#err').textContent='Questo è il tuo numero.';
+   const c=contacts().filter(x=>x.num!=t);c.push({num:t,name:(n+' '+s).trim()});S('mc_c_'+me,c);
+   adding=false;cur=t;draw();};
+  return;
+ }
+ if(!cur){p.innerHTML='<div class="hint">Scegli un contatto dalla lista per iniziare a scrivere.</div>';return}
+ const ms=allMsgs()[key(me,cur)]||[];
+ p.innerHTML=`<div class="msgs" id="ms">${ms.length?ms.map(x=>`<div class="m ${x.from==me?'me':''}">${esc(x.text)}<time>${new Date(x.t).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}</time></div>`).join(''):'<div class="hint">Nessun messaggio. Scrivi il primo.</div>'}</div>
+ <div class="composer"><input id="tx" type="text" placeholder="Scrivi un messaggio" aria-label="Messaggio" autocomplete="off"><button class="btn" id="sd">Invia</button></div>`;
+ const box=$('#ms');box.scrollTop=box.scrollHeight;
+ const send=()=>{const t=$('#tx').value.trim();if(!t)return;const m=allMsgs(),k=key(me,cur);(m[k]=m[k]||[]).push({from:me,t:Date.now(),text:t});S('mc_msgs',m);drawList();drawPane();$('#tx').focus()};
+ $('#sd').onclick=send;$('#tx').onkeydown=e=>{if(e.key=='Enter')send()};
+}
+function locate(cb){
+ if(!navigator.geolocation)return cb('Il browser non supporta il GPS.');
+ navigator.geolocation.getCurrentPosition(p=>{myPos=p.coords;cb()},e=>cb('Posizione non disponibile: '+e.message),{enableHighAccuracy:true,timeout:10000});
+}
+function drawView(){
+ const v=$('#vw');
+ if(view=='gps'){
+  v.innerHTML=`<h2>MapChat GPS</h2><p>Trova la tua posizione attuale.</p><button class="btn" id="lc">Mostra la mia posizione</button><div class="coords" id="co">${myPos?coordHtml():'Posizione non ancora rilevata.'}</div>`;
+  $('#lc').onclick=()=>locate(err=>{$('#co').innerHTML=err?esc(err):coordHtml()});
+ }else{
+  v.innerHTML=`<h2>Mappa</h2><p>Mappa interattiva. Premi il pulsante per centrarla su di te.</p><button class="btn" id="lc" style="margin-bottom:14px">Centra sulla mia posizione</button><div id="map"></div>`;
+  if(typeof L=='undefined'){$('#map').innerHTML='<div class="empty">La mappa richiede una connessione a Internet.</div>';return}
+  const c=myPos?[myPos.latitude,myPos.longitude]:[41.9,12.5];
+  mapObj=L.map('map').setView(c,myPos?15:5);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(mapObj);
+  const pin=()=>L.circleMarker([myPos.latitude,myPos.longitude],{radius:9,color:'#fff',weight:3,fillColor:'#ff5a4e',fillOpacity:1}).addTo(mapObj).bindPopup('Sei qui');
+  if(myPos)pin();
+  $('#lc').onclick=()=>locate(err=>{if(err)return toast(err);mapObj.setView([myPos.latitude,myPos.longitude],15);pin()});
+ }
+}
+const coordHtml=()=>`Latitudine: <b>${myPos.latitude.toFixed(5)}</b><br>Longitudine: <b>${myPos.longitude.toFixed(5)}</b><br>Precisione: circa ${Math.round(myPos.accuracy)} m`;
+
+window.addEventListener('storage',()=>{if(me&&view=='chat'&&!adding){drawList();drawPane()}});
+me&&J('mc_users',{})[me]?start():renderAuth();
+</script>
+</body>
+</html>
